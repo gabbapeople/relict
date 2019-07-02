@@ -1,0 +1,15 @@
+stm32l1xx_hal_rtc.c:271:26:HAL_RTC_DeInit	0	static
+stm32l1xx_hal_rtc.c:289:13:HAL_RTC_MspInit	0	static
+stm32l1xx_hal_rtc.c:305:13:HAL_RTC_MspDeInit	0	static
+stm32l1xx_hal_rtc.c:631:19:HAL_RTC_DeactivateAlarm	16	static
+stm32l1xx_hal_rtc.c:760:13:HAL_RTC_AlarmAEventCallback	0	static
+stm32l1xx_hal_rtc.c:717:6:HAL_RTC_AlarmIRQHandler	8	static
+stm32l1xx_hal_rtc.c:777:19:HAL_RTC_PollForAlarmAEvent	16	static
+stm32l1xx_hal_rtc.c:827:21:HAL_RTC_GetState	0	static
+stm32l1xx_hal_rtc.c:852:19:RTC_EnterInitMode	16	static
+stm32l1xx_hal_rtc.c:194:19:HAL_RTC_Init	16	static
+stm32l1xx_hal_rtc.c:881:9:RTC_ByteToBcd2	0	static
+stm32l1xx_hal_rtc.c:344:19:HAL_RTC_SetTime	24	static
+stm32l1xx_hal_rtc.c:467:19:HAL_RTC_SetDate	24	static
+stm32l1xx_hal_rtc.c:899:9:RTC_Bcd2ToByte	0	static
+stm32l1xx_hal_rtc.c:576:19:HAL_RTC_GetDate	16	static

@@ -1,0 +1,2 @@
+troykaI2CHub.c:9:6:troykaI2CHub_init	0	static
+troykaI2CHub.c:15:7:troykaI2CHub_setBusChannel	24	static

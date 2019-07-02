@@ -1,0 +1,9 @@
+sim7020.c:25:6:sim7020Init	0	static
+sim7020.c:31:6:sim7020PowerCycle	72	static
+sim7020.c:48:6:sim7020Dtr	32	static
+sim7020.c:190:9:writecommand	72	static
+sim7020.c:170:9:runscript	40	static
+sim7020.c:59:9:readimei	32	static
+sim7020.c:86:9:readmfr	32	static
+sim7020.c:114:9:readcicc	32	static
+sim7020.c:142:9:readmodel	48	static
