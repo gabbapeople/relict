@@ -6,12 +6,13 @@
 #include "sim7020.h"
 #include "sim7020_AT.h"
 
-UART_HandleTypeDef *sim7020_ctrl;
-UART_HandleTypeDef *sim7020_msg;
+UART_HandleTypeDef* sim7020_ctrl;
+UART_HandleTypeDef* sim7020_msg;
 
-extern unsigned char byte;
-extern uint8_t buffer_counter;
-extern unsigned char *buffer;
+extern uint8_t rx_data[2];
+extern uint8_t ok_flag;
+extern char buffer[rx_buffer_size];
+extern uint8_t rx_buffer[rx_buffer_size];
 
 char MyImei[32];
 char MyIp[16];
@@ -21,17 +22,21 @@ char MyModel[16];
 
 int32_t TimeOut = TIMEOUT;
 
-
-void sim7020Init(UART_HandleTypeDef *ctrl, UART_HandleTypeDef *msg)
+void sim7020Init(UART_HandleTypeDef* ctrl, UART_HandleTypeDef* msg)
 {
-	sim7020_ctrl = ctrl;
-	sim7020_msg = msg;
+    sim7020_ctrl = ctrl;
+
+#if (SIM7020_DEBUG == 1)
+    sim7020_msg = msg;
+#endif
 }
 
 void sim7020PowerCycle()
 {
+#if (SIM7020_DEBUG == 1)
     const char info[] = "Power Circle Start\r\n";
     HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
+#endif
 
     HAL_GPIO_WritePin(GPIOB, SIM_PWR_Pin, GPIO_PIN_SET);
     HAL_Delay(2000);
@@ -40,26 +45,32 @@ void sim7020PowerCycle()
     HAL_GPIO_WritePin(GPIOB, SIM_PWR_Pin, GPIO_PIN_SET);
     HAL_Delay(2000);
 
-
+#if (SIM7020_DEBUG == 1)
     const char info1[] = "Power Circle Done\r\n";
     HAL_UART_Transmit(sim7020_msg, (uint8_t*)info1, strlen(info1), HAL_MAX_DELAY);
+#endif
 }
 
 void sim7020Dtr()
 {
-	const char info[] = "DTR Start\r\n";
+#if (SIM7020_DEBUG == 1)
+    const char info[] = "DTR Start\r\n";
     HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
-
+#endif
     HAL_GPIO_WritePin(GPIOC, SIM_SLP_Pin, GPIO_PIN_RESET);
-
+#if (SIM7020_DEBUG == 1)
     const char info1[] = "DTR Done\r\n";
     HAL_UART_Transmit(sim7020_msg, (uint8_t*)info1, strlen(info1), HAL_MAX_DELAY);
+#endif
 }
 
 uint8_t readimei()
 {
-	const char info[] = "READ IMEI\r\n";
+
+#if (SIM7020_DEBUG == 1)
+    const char info[] = "READ IMEI\r\n";
     HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
+#endif
 
     int32_t t = 0, n = 0, s = 0;
     s = runscript(NBgetimei);
@@ -74,19 +85,17 @@ uint8_t readimei()
             MyImei[n++] = buffer[t++];
         MyImei[n] = 0;
 
-		const char info[] = "MY IMEI: ";
-	    HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
-	    HAL_UART_Transmit(sim7020_msg, (uint8_t*)MyImei, strlen(MyImei), HAL_MAX_DELAY);
-	    HAL_UART_Transmit(sim7020_msg, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
-
         return (s);
     }
 }
 
 uint8_t readmfr()
 {
-	const char info[] = "READ MFR\r\n";
+
+#if (SIM7020_DEBUG == 1)
+    const char info[] = "READ MFR\r\n";
     HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
+#endif
 
     int32_t t = 0, n = 0, s = 0;
     s = runscript(NBgetmfr);
@@ -102,19 +111,17 @@ uint8_t readmfr()
             MyMfr[n++] = buffer[t++];
         MyMfr[n] = 0;
 
-		const char info[] = "MY MFR: ";
-	    HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
-	    HAL_UART_Transmit(sim7020_msg, (uint8_t*)MyMfr, strlen(MyMfr), HAL_MAX_DELAY);
-	    HAL_UART_Transmit(sim7020_msg, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
-
         return (s);
     }
 }
 
 uint8_t readcicc()
 {
-	const char info[] = "READ CICC\r\n";
+
+#if (SIM7020_DEBUG == 1)
+    const char info[] = "READ CICC\r\n";
     HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
+#endif
 
     int32_t t = 0, n = 0, s = 0;
     s = runscript(NBgetcicc);
@@ -130,19 +137,17 @@ uint8_t readcicc()
             MyCicc[n++] = buffer[t++];
         MyCicc[n] = 0;
 
-		const char info[] = "MY CICC: ";
-	    HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
-	    HAL_UART_Transmit(sim7020_msg, (uint8_t*)MyCicc, strlen(MyCicc), HAL_MAX_DELAY);
-	    HAL_UART_Transmit(sim7020_msg, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
-
         return (s);
     }
 }
 
 uint8_t readmodel()
 {
-	const char info[] = "READ MODEL\r\n";
+
+#if (SIM7020_DEBUG == 1)
+    const char info[] = "READ MODEL\r\n";
     HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
+#endif
 
     int32_t t = 0, n = 0, s = 0;
     s = runscript(NBgetmodel);
@@ -158,11 +163,6 @@ uint8_t readmodel()
             MyModel[n++] = buffer[t++];
         MyModel[n] = 0;
 
-		const char info[] = "MY MODEL: ";
-	    HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
-	    HAL_UART_Transmit(sim7020_msg, (uint8_t*)MyModel, strlen(MyModel), HAL_MAX_DELAY);
-	    HAL_UART_Transmit(sim7020_msg, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
-
         return (s);
     }
 }
@@ -170,8 +170,10 @@ uint8_t readmodel()
 int32_t runscript(const char** scrpt)
 {
 
-	const char info[] = "RUN SCRIPT \r\n";
+#if (SIM7020_DEBUG == 1)
+    const char info[] = "RUN SCRIPT \r\n";
     HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
+#endif
 
     int32_t t = 0;
     int32_t s = 1;
@@ -186,55 +188,72 @@ int32_t runscript(const char** scrpt)
     return (s);
 }
 
-
 int32_t writecommand(const char* cmd)
 {
-	uint8_t n = 0;
+    uint8_t n = 0;
+    ok_flag = 0;
+    for (uint8_t i = 0; i < 100; i++) {
+        rx_buffer[i] = 0;
+    }
 
-	buffer_counter = 0;
-
-	const char info[] = "WRITE AT CMD\r\n";
+#if (SIM7020_DEBUG == 1)
+    const char info[] = "WRITE AT CMD\r\n";
     HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
+#endif
 
-	HAL_UART_Transmit(sim7020_ctrl, (uint8_t*)cmd, strlen(cmd), HAL_MAX_DELAY);
-	HAL_UART_Transmit(sim7020_ctrl, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+    HAL_UART_Transmit(sim7020_ctrl, (uint8_t*)cmd, strlen(cmd), HAL_MAX_DELAY);
+    HAL_UART_Transmit(sim7020_ctrl, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
 
-	HAL_UART_Receive_IT(sim7020_ctrl, &byte, 1);
+    HAL_UART_Receive_IT(sim7020_ctrl, rx_data, 1);
 
-	while(n <= TimeOut){
-		HAL_Delay(10);
-		n++;
-	}
+    while (n <= TimeOut) {
+        if (ok_flag == 1) {
 
-	if (n >= TimeOut){
-		HAL_UART_Transmit(sim7020_msg, (uint8_t*)"TIMEOUT\r\n", 10, HAL_MAX_DELAY);
-		char val[5];
-		sprintf (val, "%d ", (uint8_t)buffer_counter);
-		HAL_UART_Transmit(sim7020_msg, (uint8_t*)val, strlen(val), HAL_MAX_DELAY);
-		HAL_UART_Transmit(sim7020_msg, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+#if (SIM7020_DEBUG == 1)
+            HAL_UART_Transmit(sim7020_msg, (uint8_t*)"OK FOUND\r\n", 10, HAL_MAX_DELAY);
+#endif
+            return 1;
+            break;
+        }
+        else {
+            n++;
+            HAL_Delay(100);
+        }
+    }
 
-		if (buffer[buffer_counter - 4] == 'O' && buffer[buffer_counter - 3] == 'K'){
-			const char info[] = "GOT AT ANSWER\r\n\n";
-		    HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
+    if (n >= TimeOut) {
 
-			HAL_UART_Transmit(sim7020_msg, (uint8_t*)buffer, buffer_counter, HAL_MAX_DELAY);
-			HAL_UART_Transmit(sim7020_msg, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+#if (SIM7020_DEBUG == 1)
+        HAL_UART_Transmit(sim7020_msg, (uint8_t*)"TIMEOUT\r\n", 10, HAL_MAX_DELAY);
+#endif
+        return 0;
+    }
 
-		    return 1;
-		} else {
-			const char info[] = "GOT AT ERROR\r\n";
-		    HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
-		    return 0;
-		}
-	}
-	return 0;
+    return 0;
 }
 
-
-
-
-
-
-
-
-
+void sim7020HardwareInfo()
+{
+    readimei();
+    readmfr();
+    readcicc();
+    readmodel();
+#if (SIM7020_DEBUG == 1)
+    const char info[] = "MY MODEL: ";
+    HAL_UART_Transmit(sim7020_msg, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
+    HAL_UART_Transmit(sim7020_msg, (uint8_t*)MyModel, strlen(MyModel), HAL_MAX_DELAY);
+    HAL_UART_Transmit(sim7020_msg, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+    const char info1[] = "MY MFR: ";
+    HAL_UART_Transmit(sim7020_msg, (uint8_t*)info1, strlen(info1), HAL_MAX_DELAY);
+    HAL_UART_Transmit(sim7020_msg, (uint8_t*)MyMfr, strlen(MyMfr), HAL_MAX_DELAY);
+    HAL_UART_Transmit(sim7020_msg, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+    const char info2[] = "MY CICC: ";
+    HAL_UART_Transmit(sim7020_msg, (uint8_t*)info2, strlen(info2), HAL_MAX_DELAY);
+    HAL_UART_Transmit(sim7020_msg, (uint8_t*)MyCicc, strlen(MyCicc), HAL_MAX_DELAY);
+    HAL_UART_Transmit(sim7020_msg, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+    const char info3[] = "MY IMEI: ";
+    HAL_UART_Transmit(sim7020_msg, (uint8_t*)info3, strlen(info3), HAL_MAX_DELAY);
+    HAL_UART_Transmit(sim7020_msg, (uint8_t*)MyImei, strlen(MyImei), HAL_MAX_DELAY);
+    HAL_UART_Transmit(sim7020_msg, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+#endif
+}

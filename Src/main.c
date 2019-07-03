@@ -80,6 +80,7 @@ typedef enum {
 #define SUN_ERROR_VERT 80
 #define SUN_ERROR_HORZ 40
 
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -90,6 +91,14 @@ typedef enum {
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
+uint8_t rx_data[2];
+uint8_t rx_buffer[rx_buffer_size];
+char buffer[rx_buffer_size];
+
+uint8_t transfer;
+uint8_t rx_flag = 0;
+uint8_t ok_flag;
 
 _Bool endstop00State;
 _Bool endstop01State;
@@ -146,9 +155,9 @@ uint8_t c_day;
 uint8_t c_dow;
 
 
-unsigned char byte;
-uint8_t buffer_counter;
-unsigned char *buffer;
+//unsigned char byte;
+//uint8_t buffer_counter;
+//unsigned char *buffer;
 
 /* USER CODE END PV */
 
@@ -431,7 +440,7 @@ void calculateVBat1()
 
 void I2C_Scan()
 {
-    char info[] = "Scanning I2C bus...\r\n";
+    char info[] = "SCANNING I2C BUS\r\n";
     HAL_UART_Transmit(&huart2, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
 
     HAL_StatusTypeDef res;
@@ -439,10 +448,8 @@ void I2C_Scan()
         res = HAL_I2C_IsDeviceReady(&hi2c1, i << 1, 1, 10);
         if(res == HAL_OK) {
             char msg[64];
-            snprintf(msg, sizeof(msg), "0x%02X", i);
+            snprintf(msg, sizeof(msg), "0x%02X ", i);
             HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-        } else {
-            HAL_UART_Transmit(&huart2, (uint8_t*)".", 1, HAL_MAX_DELAY);
         }
     }
     HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
@@ -835,15 +842,8 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  sim7020Init(&huart3, &huart2);
-  sim7020Dtr();
-  sim7020PowerCycle();
 
-  buffer = createBuffer(50);
-  readimei();
-  readmfr();
-  readcicc();
-  readmodel();
+
 
 
 
@@ -864,6 +864,12 @@ int main(void)
   HAL_ADC_Start_DMA(&hadc, (uint32_t*)&ADC_value, 2);
 
 
+  sim7020Init(&huart3, &huart2);
+  sim7020Dtr();
+  sim7020PowerCycle();
+  sim7020HardwareInfo();
+
+
 
 
   while (1)
@@ -872,6 +878,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+
 
 	  getDateTime();
 
@@ -909,7 +917,7 @@ int main(void)
 	  motor3Handler();
 	  motor4Handler();
 
-	  statusPrint();
+	  //statusPrint();
 
   }
 
@@ -966,26 +974,79 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
-{
-//	const char info[] = "TX OVER \r\n";
-//	HAL_UART_Transmit(&huart2, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
-}
-
-void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
-{
-//	const char info[] = "RX HALF BUFF \r\n";
-//	HAL_UART_Transmit(&huart2, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
-}
+//void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+//{
+////	const char info[] = "TX OVER \r\n";
+////	HAL_UART_Transmit(&huart2, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
+//}
+//
+//void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
+//{
+////	const char info[] = "RX HALF BUFF \r\n";
+////	HAL_UART_Transmit(&huart2, (uint8_t*)info, strlen(info), HAL_MAX_DELAY);
+//}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-//  if (huart->Instance == USART3)
-//  {
-	buffer[buffer_counter++] = byte;
-    HAL_UART_Receive_IT(&huart3, &byte, 1);
- // }
+	    uint8_t i;
+	    if (huart->Instance == USART3) {
+
+	        if (rx_flag == 0) {
+	            for (i = 0; i < 100; i++)
+	                rx_buffer[i] = 0;
+	        }
+
+	        if (rx_flag > rx_buffer_size){
+	            rx_flag = 0;
+	        }
+
+	        rx_buffer[rx_flag++] = rx_data[0];
+
+	        if (rx_buffer[rx_flag - 4] == 79 && rx_buffer[rx_flag - 3] == 75){
+	        	ok_flag = 1;
+	            rx_flag = 0;
+	            transfer = 1;
+	        }
+
+	        if (transfer) {
+	            sprintf(buffer, "%s", rx_buffer);
+	            HAL_UART_Transmit(&huart2, (uint8_t*)buffer, sizeof(buffer), 1000);
+
+	            transfer = 0;
+	        }
+	        HAL_UART_Receive_IT(&huart3, rx_data, 1);
+	    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+////  if (huart->Instance == USART3)
+////  {
+//	buffer[buffer_counter++] = byte;
+//    HAL_UART_Receive_IT(&huart3, &byte, 1);
+// // }
+
 
 /* USER CODE END 4 */
 

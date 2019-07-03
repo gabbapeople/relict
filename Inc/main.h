@@ -137,6 +137,8 @@ void Error_Handler(void);
 #define BUTTON_1_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
+#define rx_buffer_size 100
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
