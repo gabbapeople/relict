@@ -77,8 +77,8 @@ typedef enum {
 
 #define VREF 3.29f
 
-#define SUN_ERROR_VERT 80
-#define SUN_ERROR_HORZ 40
+#define SUN_ERROR_VERT 50
+#define SUN_ERROR_HORZ 50
 
 
 /* USER CODE END PD */
@@ -370,35 +370,43 @@ void resetLs()
 void sunTrackControl()
 {
 	if(sunTrackState == 1){
-		if(dvert > -SUN_ERROR_VERT && dvert < SUN_ERROR_VERT) {
-			motor3Cmd = stp;
-			motor4Cmd = stp;
-			dvertCorrect = 1;
-		}
-		if(dvert < -SUN_ERROR_VERT || dvert > SUN_ERROR_VERT){
-			dvertCorrect = 0;
-			if(dvert > 0){
-				motor3Cmd = cw;
-				motor4Cmd = cw;
+
+
+			if(dhorz > -SUN_ERROR_HORZ && dhorz < SUN_ERROR_HORZ) {
+				motor2Cmd = stp;
+				dhorzCorrect = 1;
 			}
-			if(dvert < 0){
-				motor3Cmd = ccw;
-				motor4Cmd = ccw;
-			}
-		}
-		if(dhorz > -SUN_ERROR_HORZ && dhorz < SUN_ERROR_HORZ) {
-			motor2Cmd = stp;
-			dhorzCorrect = 1;
-		}
-		if(dhorz < -SUN_ERROR_HORZ || dhorz > SUN_ERROR_HORZ){
-			dhorzCorrect = 0;
-			if (dhorz > 0) {
+			if(dhorz < -SUN_ERROR_HORZ || dhorz > SUN_ERROR_HORZ){
+				dhorzCorrect = 0;
+				if (dhorz > 0) {
 				motor2Cmd = cw;
-			}
-			if (dhorz < 0) {
+				}
+				if (dhorz < 0) {
 				motor2Cmd = ccw;
+				}
 			}
-		}
+
+
+
+			if(dvert > -SUN_ERROR_VERT && dvert < SUN_ERROR_VERT) {
+					motor3Cmd = stp;
+					motor4Cmd = stp;
+					dvertCorrect = 1;
+			}
+			if(dvert < -SUN_ERROR_VERT || dvert > SUN_ERROR_VERT){
+					dvertCorrect = 0;
+					if(dvert > 0){
+						motor3Cmd = cw;
+						motor4Cmd = cw;
+					}
+					if(dvert < 0){
+						motor3Cmd = ccw;
+						motor4Cmd = ccw;
+					}
+			}
+
+
+
 		if (dvertCorrect == 1 && dhorzCorrect == 1){
 			sunTrackState = 0;
 		}
@@ -819,7 +827,7 @@ int main(void)
 
   batKey1State = 1;
   batKey2State = 1;
-  key3VBusState = 0;
+  key3VBusState = 1;
 
   chrKey1State = 0;
   chrKey2State = 0;
@@ -842,11 +850,6 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-
-
-
-
-
   I2C_Scan();
 
   troykaI2CHub_init(&hi2c1);
@@ -867,9 +870,7 @@ int main(void)
   sim7020Init(&huart3, &huart2);
   sim7020Dtr();
   sim7020PowerCycle();
-  sim7020HardwareInfo();
-
-
+  //sim7020HardwareInfo();
 
 
   while (1)
@@ -917,7 +918,7 @@ int main(void)
 	  motor3Handler();
 	  motor4Handler();
 
-	  //statusPrint();
+	  statusPrint();
 
   }
 
