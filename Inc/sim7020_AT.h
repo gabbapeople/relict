@@ -2,73 +2,81 @@
 #define BAUDRATES 15
 const long int Baudrates[BAUDRATES] = {0,110,300,1200,2400,4800,9600,19200,38400,57600,115200,230400,460800,921600,3000000};
 
-const char* NBstart[] = {
-  "ATZ",
-  "AT+CFUN=0",
-  "AT+CREG=2",
-  "AT*MCGDEFCONT=\"IP\",\"cdp.iot.t-mobile.nl\"",
-  "AT+CFUN=1",
-  "AT+CBAND=8",
-  "AT+COPS=1,2,\"20416\"",  // sign up to T-Moble NL
-  "AT+CGCONTRDP",
+//
+
+const char* NBcmqnew[] = {
+  "AT+CMQNEW=\"52.7.124.212\",\"1883\",12000,100",
+  "\0"
+};
+
+const char* NBcmqcon[] = {
+  "AT+CMQCON=0,3,\"abdsjjdfdsfkslfkdsfkdsfsdfsdfa\",600,0,0,\"Gabbapeople\",\"142bca1da7344c5cb1b189625b9d5bc9\"",
+  "\0"
+};
+
+const char* NBcmqpub[] = {
+   "AT+CMQPUB=0,\"Gabbapeople/feeds/relict.data/\",1,0,0,8,\"31323334\""
+  "\0"
+};
+
+//
+
+const char* NBcsq[] = {
   "AT+CSQ",
-  "\0"  // end script with 0x00
+  "\0"
 };
 
-const char* NBopensocket[] = {
-  "AT+CSOC=1,2,1",
-  "AT+CSOCON=0,15683,\"172.27.131.100\"", // T-Mobile Server socket 0
-  "\0"     // end script with 0x00
+const char* NBcpin[] = {
+   "AT+CPIN?",
+  "\0"
 };
 
-const char* NBclosesocket[] = { 
-  "AT+CSODIS=0",
-  "AT+CSOCL=0",
-  "AT+CGACT=0,1",
-  "\0"     // end script with 0x00
+const char* NBcreg[] = {
+   "AT+CREG?",
+  "\0"
 };
 
-const char* NBhelloworld[] = {
-  "AT+CSOSEND=0,0,\"Hello World!\"",
-  "\0"     // end script with 0x00
+const char* NBcgreg[] = {
+   "AT+CGREG?",
+  "\0"
 };
+
+const char* NBcops[] = {
+   "AT+COPS?",
+  "\0"
+};
+
+//
 
 const char* NBgetimei[] = {
   "AT+GSN",
-  "\0"     // end script with  0x00
+  "\0"
 };
 
 const char* NBgetmfr[] = {
   "AT+GMI",
-  "\0"     // end script with  0x00
+  "\0"
 };
 
 const char* NBgetcicc[] = {
   "AT+CCID",
-  "\0"     // end script with  0x00
+  "\0"
 };
 
 const char* NBgetmodel[] = {
   "AT+GMM",
-  "\0"     // end script with  0x00
+  "\0"
 };
+
+//
 
 const char* NBdefault[] = {
   "ATZ",
-  "\0"     // end script with  0x00
+  "\0"
 };
 
 const char* NBat[] = {
   "AT",
-  "\0"     // end script with  0x00
+  "\0"
 };
 
-const char* NBss921600[] = {
-  "AT+IPR=921600",
-  "\0"     // end script with  0x00
-};
-
-const char* NBss0[] = {
-  "AT+IPR=0",
-  "\0"     // end script with  0x00
-};

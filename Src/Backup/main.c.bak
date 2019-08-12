@@ -48,33 +48,27 @@
 
 typedef enum {
 	open,
-	opened,
 	close,
-	closed,
 	still
 } operateCmd;
+
+typedef enum {
+	gotop,
+	gobottom,
+	stop
+} motorCmd;
+
+typedef enum {
+	cw,
+	ccw,
+	stp
+} motorCmd2;
 
 typedef enum {
 	top,
 	bottom,
 	middle
 } mechState;
-
-typedef enum {
-	cw,
-	ccw,
-	stp
-} motorCmd;
-
-typedef enum {
-	mech_wakeup_cmd,
-	mech_sleep_cmd,
-	mech_still,
-	mech_suntrack_cmd,
-	mech_suntrack,
-	mech_wakeup,
-	mech_sleep,
-} relictState;
 
 /* USER CODE END PTD */
 
@@ -83,8 +77,8 @@ typedef enum {
 
 #define VREF 3.29f
 
-#define SUN_ERROR_VERT 10
-#define SUN_ERROR_HORZ 10
+#define SUN_ERROR_VERT 50
+#define SUN_ERROR_HORZ 50
 
 
 /* USER CODE END PD */
@@ -110,10 +104,9 @@ _Bool endstop00State;
 _Bool endstop01State;
 _Bool endstop10State;
 _Bool endstop11State;
+
 _Bool endstop20State;
 _Bool endstop21State;
-_Bool endstop30State;
-_Bool endstop31State;
 
 _Bool batKey1State;
 _Bool batKey2State;
@@ -123,26 +116,26 @@ _Bool chrKey2State;
 
 _Bool key3VBusState;
 
+_Bool sunTrackState;
 _Bool dvertCorrect;
 _Bool dhorzCorrect;
-_Bool refreshState;
 
-operateCmd farm0 = still;
-operateCmd farm1 = still;
-operateCmd lift = still;
+operateCmd farms = still;
+operateCmd deploy = still;
 
-motorCmd motor0Cmd = stp;
-motorCmd motor1Cmd = stp;
-motorCmd motor5Cmd = stp;
-motorCmd motor2Cmd = stp;
-motorCmd motor3Cmd = stp;
-motorCmd motor4Cmd = stp;
+motorCmd motor0Cmd = stop;
+motorCmd motor1Cmd = stop;
+motorCmd motor5Cmd = stop;
 
 mechState farm0State = middle;
 mechState farm1State = middle;
-mechState lift0State = middle;
 
-relictState relict = mech_still;
+mechState deploy0State = middle;
+
+motorCmd2 motor2Cmd = stp;
+motorCmd2 motor3Cmd = stp;
+motorCmd2 motor4Cmd = stp;
+
 
 
 double vBat0;
@@ -172,6 +165,11 @@ uint8_t c_month;
 uint8_t c_day;
 uint8_t c_dow;
 
+
+//unsigned char byte;
+//uint8_t buffer_counter;
+//unsigned char *buffer;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -186,43 +184,37 @@ void endstop2Control();
 
 void batKey1Handler();
 void batKey2Handler();
+
+void chrKey1Handler();
+void chrKey2Handler();
+
 void key3VBusHandler();
 
-
-void mechWakeUpControl();
-void mechSleepControl();
-void refreshStateControl();
 void sunTrackControl();
 
 void endstop00handler();
 void endstop01handler();
 void endstop10handler();
 void endstop11handler();
-void endstop20handler();
-void endstop21handler();
-void endstop30handler();
-void endstop31handler();
 
 void motor0Handler();
 void motor1Handler();
+
 void motor2Handler();
 void motor3Handler();
 void motor4Handler();
 void motor5Handler();
 
-void leftFarmPositionControl();
-void rightFarmPositionControl();
-
-void liftPositionControl();
+void motor0PositionControl();
+void motor1PositionControl();
+void motor5PositionControl();
 
 void calculateVBat0();
 void adcRead();
 void readLs();
 void resetLs();
 
-void debugPrint0();
-void debugPrint1();
-
+void statusPrint();
 
 void getDateTime();
 _Bool RTC_Set(uint8_t year, uint8_t month, uint8_t day,uint8_t hour, uint8_t min, uint8_t sec,uint8_t dow);
@@ -314,6 +306,24 @@ void batKey2Handler()
 	}
 }
 
+void chrKey1Handler()
+{
+	if(chrKey1State == 1){
+		HAL_GPIO_WritePin(GPIOA, CHR_KEY_1_Pin, GPIO_PIN_SET);
+	} else if (chrKey1State == 0) {
+		HAL_GPIO_WritePin(GPIOA, CHR_KEY_1_Pin, GPIO_PIN_RESET);
+	}
+}
+
+void chrKey2Handler()
+{
+	if(chrKey2State == 1){
+		HAL_GPIO_WritePin(GPIOA, CHR_KEY_2_Pin, GPIO_PIN_SET);
+	} else if (chrKey2State == 0) {
+		HAL_GPIO_WritePin(GPIOA, CHR_KEY_2_Pin, GPIO_PIN_RESET);
+	}
+}
+
 void key3VBusHandler()
 {
 	if(key3VBusState == 1){
@@ -371,6 +381,52 @@ void resetLs()
 	BH1750_Reset();
 }
 
+void sunTrackControl()
+{
+	if(sunTrackState == 1){
+
+			if(dhorz > -SUN_ERROR_HORZ && dhorz < SUN_ERROR_HORZ) {
+				motor2Cmd = stp;
+				dhorzCorrect = 1;
+			}
+			if(dhorz < -SUN_ERROR_HORZ || dhorz > SUN_ERROR_HORZ){
+				dhorzCorrect = 0;
+				if (dhorz > 0) {
+				motor2Cmd = cw;
+				}
+				if (dhorz < 0) {
+				motor2Cmd = ccw;
+				}
+			}
+
+
+
+			if(dvert > -SUN_ERROR_VERT && dvert < SUN_ERROR_VERT) {
+					motor3Cmd = stp;
+					motor4Cmd = stp;
+					dvertCorrect = 1;
+			}
+			if(dvert < -SUN_ERROR_VERT || dvert > SUN_ERROR_VERT){
+					dvertCorrect = 0;
+					if(dvert > 0){
+						motor3Cmd = cw;
+						motor4Cmd = cw;
+					}
+					if(dvert < 0){
+						motor3Cmd = ccw;
+						motor4Cmd = ccw;
+					}
+			}
+
+
+
+		if (dvertCorrect == 1 && dhorzCorrect == 1){
+			sunTrackState = 0;
+		}
+	}
+}
+
+
 void calculateVBat0()
 {
 	double r_divider, r1, r2;
@@ -420,248 +476,84 @@ void I2C_Scan()
     HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
 }
 
-void leftFarmPositionControl()
+void motor0PositionControl()
 {
-	if (farm0 == open && farm0State == middle) {
-		motor0Cmd = cw;
+	if (farms == open && farm0State == middle) {
+		motor0Cmd = gotop;
 	}
-	if (farm0 == open && farm0State == bottom) {
-		motor0Cmd = cw;
+	if (farms == open && farm0State == bottom) {
+		motor0Cmd = gotop;
 	}
-	if (farm0 == open && farm0State == top) {
-		motor0Cmd = stp;
-		farm0 = opened;
+	if (farms == open && farm0State == top) {
+		motor0Cmd = stop;
 	}
-	if (farm0 == close && farm0State == middle) {
-		motor0Cmd = ccw;
+	if (farms == close && farm0State == middle) {
+		motor0Cmd = gobottom;
 	}
-	if (farm0 == close && farm0State == top) {
-		motor0Cmd = ccw;
+	if (farms == close && farm0State == top) {
+		motor0Cmd = gobottom;
 	}
-	if (farm0 == close && farm0State == bottom) {
-		motor0Cmd = stp;
-		farm0 = closed;
+	if (farms == close && farm0State == bottom) {
+		motor0Cmd = stop;
 	}
 }
 
-void rightFarmPositionControl()
+void motor1PositionControl()
 {
-	if (farm1 == open && farm1State == middle) {
-		motor1Cmd = cw;
+	if (farms == open && farm1State == middle) {
+		motor1Cmd = gotop;
 	}
-	if (farm1 == open && farm1State == bottom) {
-		motor1Cmd = cw;
+	if (farms == open && farm1State == bottom) {
+		motor1Cmd = gotop;
 	}
-	if (farm1 == open && farm1State == top) {
-		motor1Cmd = stp;
-		farm1 = opened;
+	if (farms == open && farm1State == top) {
+		motor1Cmd = stop;
 	}
-	if (farm1 == close && farm1State == middle) {
-		motor1Cmd = ccw;
+	if (farms == close && farm1State == middle) {
+		motor1Cmd = gobottom;
 	}
-	if (farm1 == close && farm1State == top) {
-		motor1Cmd = ccw;
+	if (farms == close && farm1State == top) {
+		motor1Cmd = gobottom;
 	}
-	if (farm1 == close && farm1State == bottom) {
-		motor1Cmd = stp;
-		farm1 = closed;
+	if (farms == close && farm1State == bottom) {
+		motor1Cmd = stop;
 	}
 }
 
-void liftPositionControl()
+void motor5PositionControl()
 {
-	if (lift == open && lift0State == middle) {
-		motor5Cmd = ccw;
+	if (deploy == open && deploy0State == middle) {
+		motor5Cmd = gotop;
 	}
-	if (lift == open && lift0State == bottom) {
-		motor5Cmd = ccw;
+	if (deploy == open && deploy0State == bottom) {
+		motor5Cmd = gotop;
 	}
-	if (lift == open && lift0State == top) {
-		motor5Cmd = stp;
-		lift = opened;
+	if (deploy == open && deploy0State == top) {
+		motor5Cmd = stop;
 	}
-	if (lift == close && lift0State == middle) {
-		motor5Cmd = cw;
+	if (deploy == close && deploy0State == middle) {
+		motor5Cmd = gobottom;
 	}
-	if (lift == close && lift0State == top) {
-		motor5Cmd = cw;
+	if (deploy == close && deploy0State == top) {
+		motor5Cmd = gobottom;
 	}
-	if (lift == close && lift0State == bottom) {
-		motor5Cmd = stp;
-		lift = closed;
-	}
-}
-
-void refreshStateControl()
-{
-	if (endstop30State == 1 && endstop31State == 1){
-		refreshState = 1;
-	} else {
-		refreshState = 0;
-	}
-}
-
-//void sunTrackControl()
-//{
-//	if(relict == mech_suntrack_cmd){
-//		if (refreshState == 0){
-//			if (endstop30State == 0){
-//				motor3Cmd = ccw;
-//				motor4Cmd = ccw;
-//			}
-//			if (endstop30State == 1){
-//				motor3Cmd = stp;
-//				motor4Cmd = stp;
-//				if(endstop31State == 0){
-//					motor2Cmd = cw;
-//				}
-//				if(endstop31State == 1){
-//					motor2Cmd = stp;
-//					refreshState = 1;
-//				}
-//			}
-//		}
-//
-//		if (refreshState == 1){
-//			if(dhorz > -SUN_ERROR_HORZ && dhorz < SUN_ERROR_HORZ) {
-//				motor2Cmd = stp;
-//				dhorzCorrect = 1;
-//			}
-//			if(dhorz < -SUN_ERROR_HORZ || dhorz > SUN_ERROR_HORZ){
-//				dhorzCorrect = 0;
-//				motor2Cmd = ccw;
-//			}
-//			if(dvert > -SUN_ERROR_VERT && dvert < SUN_ERROR_VERT) {
-//					motor3Cmd = stp;
-//					motor4Cmd = stp;
-//					dvertCorrect = 1;
-//			}
-//			if(dvert < -SUN_ERROR_VERT || dvert > SUN_ERROR_VERT){
-//					dvertCorrect = 0;
-//					motor3Cmd = cw;
-//					motor4Cmd = cw;
-//			}
-//			if (dvertCorrect == 1 && dhorzCorrect == 1){
-//				relict = mech_suntrack;
-//			}
-//		}
-//
-//	}
-//}
-
-void sunTrackControl()
-{
-	if(relict == mech_suntrack_cmd){
-
-			if(dhorz > -SUN_ERROR_HORZ && dhorz < SUN_ERROR_HORZ) {
-				motor2Cmd = stp;
-				dhorzCorrect = 1;
-			}
-			if(dhorz < -SUN_ERROR_HORZ || dhorz > SUN_ERROR_HORZ){
-				dhorzCorrect = 0;
-				if (dhorz > 0) {
-				motor2Cmd = cw;
-				}
-				if (dhorz < 0) {
-				motor2Cmd = ccw;
-				}
-				if (endstop31State == 1){
-					motor2Cmd = stp;
-				}
-			}
-
-			if(dvert > -SUN_ERROR_VERT && dvert < SUN_ERROR_VERT) {
-					motor3Cmd = stp;
-					motor4Cmd = stp;
-					dvertCorrect = 1;
-			}
-			if(dvert < -SUN_ERROR_VERT || dvert > SUN_ERROR_VERT){
-					dvertCorrect = 0;
-					if(dvert > 0){
-						motor3Cmd = cw;
-						motor4Cmd = cw;
-					}
-					if(dvert < 0){
-						motor3Cmd = ccw;
-						motor4Cmd = ccw;
-					}
-					if(endstop30State == 1) {
-						motor3Cmd = stp;
-						motor4Cmd = stp;
-					}
-			}
-
-		if (dvertCorrect == 1 && dhorzCorrect == 1){
-			relict = mech_suntrack;
-		}
-	}
-}
-
-void mechWakeUpControl()
-{
-	if (relict == mech_wakeup_cmd){
-		if(lift != opened){
-			lift = open;
-		}
-		if(lift == opened){
-			if(farm0 != opened){
-				farm0 = open;
-			}
-			if(farm1 != opened){
-				farm1 = open;
-			}
-			if(farm0 == opened && farm1 == opened){
-				relict = mech_suntrack_cmd;
-			}
-		}
-	}
-}
-
-void mechSleepControl()
-{
-	if (relict == mech_sleep_cmd){
-		if(farm0 != closed ){
-			farm0 = close;
-		}
-		if(farm1 != closed ){
-			farm1 = close;
-		}
-		if(farm0 == closed && farm1 == closed){
-			if (endstop30State == 0){
-				motor3Cmd = ccw;
-				motor4Cmd = ccw;
-			}
-			if (endstop30State == 1){
-				motor3Cmd = stp;
-				motor4Cmd = stp;
-
-				if(endstop31State == 0){
-					motor2Cmd = cw;
-				}
-				if(endstop31State == 1){
-					motor2Cmd = stp;
-					lift = close;
-				}
-				if(lift == closed){
-					relict = mech_sleep;
-				}
-			}
-		}
+	if (deploy == close && deploy0State == bottom) {
+		motor5Cmd = stop;
 	}
 }
 
 void motor0Handler()
 {
-	if (motor0Cmd == stp) {
+	if (motor0Cmd == stop) {
 		HAL_GPIO_WritePin(GPIOB, MOTOR_0_EN_Pin, GPIO_PIN_RESET);
 	}
 
-	if (motor0Cmd == cw) {
+	if (motor0Cmd == gotop) {
 		HAL_GPIO_WritePin(GPIOB, MOTOR_0_EN_Pin,GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOB, MOTOR_0_D_Pin, GPIO_PIN_RESET);
 	}
 
-	if (motor0Cmd == ccw) {
+	if (motor0Cmd == gobottom) {
 		HAL_GPIO_WritePin(GPIOB, MOTOR_0_EN_Pin,GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOB, MOTOR_0_D_Pin, GPIO_PIN_SET);
 	}
@@ -669,16 +561,16 @@ void motor0Handler()
 
 void motor1Handler()
 {
-	if (motor1Cmd == stp) {
+	if (motor1Cmd == stop) {
 		HAL_GPIO_WritePin(GPIOB, MOTOR_1_EN_Pin, GPIO_PIN_RESET);
 	}
 
-	if (motor1Cmd == cw) {
+	if (motor1Cmd == gotop) {
 		HAL_GPIO_WritePin(GPIOB, MOTOR_1_EN_Pin,GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOB, MOTOR_1_D_Pin, GPIO_PIN_RESET);
 	}
 
-	if (motor1Cmd == ccw) {
+	if (motor1Cmd == gobottom) {
 		HAL_GPIO_WritePin(GPIOB, MOTOR_1_EN_Pin,GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOB, MOTOR_1_D_Pin, GPIO_PIN_SET);
 	}
@@ -737,16 +629,16 @@ void motor4Handler()
 
 void motor5Handler()
 {
-	if (motor5Cmd == stp) {
+	if (motor5Cmd == stop) {
 		HAL_GPIO_WritePin(GPIOD, MOTOR_5_EN_Pin, GPIO_PIN_RESET);
 	}
 
-	if (motor5Cmd == cw) {
+	if (motor5Cmd == gotop) {
 		HAL_GPIO_WritePin(GPIOD, MOTOR_5_EN_Pin,GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOA, MOTOR_5_D_Pin, GPIO_PIN_RESET);
 	}
 
-	if (motor5Cmd == ccw) {
+	if (motor5Cmd == gobottom) {
 		HAL_GPIO_WritePin(GPIOD, MOTOR_5_EN_Pin,GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOA, MOTOR_5_D_Pin, GPIO_PIN_SET);
 	}
@@ -782,13 +674,13 @@ void endstop1Control()
 void endstop2Control()
 {
 	if (endstop20State == 0 && endstop21State == 0) {
-		lift0State = middle;
+		deploy0State = middle;
 	}
 	if (endstop20State == 1 && endstop21State == 0) {
-		lift0State = top;
+		deploy0State = top;
 	}
 	if (endstop20State == 0 && endstop21State == 1) {
-		lift0State = bottom;
+		deploy0State = bottom;
 	}
 }
 
@@ -830,41 +722,23 @@ void endstop11Handler()
 
 void endstop20Handler()
 {
-	if (HAL_GPIO_ReadPin (GPIOC, ESTOP_2_1_Pin) == GPIO_PIN_RESET) {
+	if (HAL_GPIO_ReadPin (GPIOC, ESTOP_2_0_Pin) == GPIO_PIN_RESET) {
 		endstop20State = 0;
-	} else if (HAL_GPIO_ReadPin (GPIOC, ESTOP_2_1_Pin) == GPIO_PIN_SET) {
+	} else if (HAL_GPIO_ReadPin (GPIOC, ESTOP_2_0_Pin) == GPIO_PIN_SET) {
 		endstop20State = 1;
 	}
 }
 
 void endstop21Handler()
 {
-	if (HAL_GPIO_ReadPin (GPIOC, ESTOP_2_0_Pin) == GPIO_PIN_RESET) {
+	if (HAL_GPIO_ReadPin (GPIOC, ESTOP_2_1_Pin) == GPIO_PIN_RESET) {
 		endstop21State = 0;
-	} else if (HAL_GPIO_ReadPin (GPIOC, ESTOP_2_0_Pin) == GPIO_PIN_SET) {
+	} else if (HAL_GPIO_ReadPin (GPIOC, ESTOP_2_1_Pin) == GPIO_PIN_SET) {
 		endstop21State = 1;
 	}
 }
 
-void endstop30Handler()
-{
-	if (HAL_GPIO_ReadPin (GPIOA, ESTOP_3_0_Pin) == GPIO_PIN_RESET) {
-		endstop30State = 0;
-	} else if (HAL_GPIO_ReadPin (GPIOA, ESTOP_3_0_Pin) == GPIO_PIN_SET) {
-		endstop30State = 1;
-	}
-}
-
-void endstop31Handler()
-{
-	if (HAL_GPIO_ReadPin (GPIOA, ESTOP_3_1_Pin) == GPIO_PIN_RESET) {
-		endstop31State = 0;
-	} else if (HAL_GPIO_ReadPin (GPIOA, ESTOP_3_1_Pin) == GPIO_PIN_SET) {
-		endstop31State = 1;
-	}
-}
-
-void debugPrint0()
+void statusPrint()
 {
     char dateMsg[64];
     snprintf(dateMsg, sizeof(dateMsg), "%d.%d.%d-%d", c_day, c_month, c_year, c_dow);
@@ -950,191 +824,20 @@ void debugPrint0()
     HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
 }
 
-void debugPrint1()
-{
-    char estop[64];
-    snprintf(estop, sizeof(estop), "left_farm: %d %d | right_farm: %d %d | lift: %d %d | rotate: %d %d",
-    		(uint8_t)endstop00State,
-			(uint8_t)endstop01State,
-			(uint8_t)endstop10State,
-			(uint8_t)endstop11State,
-			(uint8_t)endstop20State,
-			(uint8_t)endstop21State,
-			(uint8_t)endstop30State,
-			(uint8_t)endstop31State);
-    HAL_UART_Transmit(&huart2, (uint8_t*)estop, strlen(estop), HAL_MAX_DELAY);
-
-    HAL_UART_Transmit(&huart2, (uint8_t*)"	MECH STATE: ", 13, HAL_MAX_DELAY);
-
-    char line0[100];
-    char* val0;
-	char* val1;
-	char* val01;
-
-
-	if (farm0State == middle) {
-		val0 = "middle";
-	}
-	if (farm0State == top) {
-		val0 = "top";
-	}
-	if (farm0State == bottom) {
-		val0 = "bottom";
-	}
-	if (farm1State == middle) {
-		val1 = "middle";
-	}
-	if (farm1State == top) {
-		val1 = "top";
-	}
-	if (farm1State == bottom) {
-		val1 = "bottom";
-	}
-	if (lift0State == middle) {
-		val01 = "middle";
-	}
-	if (lift0State == top) {
-		val01 = "top";
-	}
-	if (lift0State == bottom) {
-		val01 = "bottom";
-	}
-
-	char* par0 = "l_f_s: ";
-	char* par1 = "r_f_s: ";
-	char* par01 = "lft_s: ";
-
-	char* space0 = " ";
-
-	strcpy(line0,par0);
-	strcat(line0,val0);
-	strcat(line0,space0);
-
-	strcat(line0,par1);
-	strcat(line0,val1);
-	strcat(line0,space0);
-
-	strcat(line0,par01);
-	strcat(line0,val01);
-	strcat(line0,space0);
-
-    HAL_UART_Transmit(&huart2, (uint8_t*)line0, strlen(line0),HAL_MAX_DELAY);
-    HAL_UART_Transmit(&huart2, (uint8_t*)"	OPERATE STATE: ", 16, HAL_MAX_DELAY);
-
-    char line1[100];
-    char* val21;
-    char* val22;
-	char* val3;
-	char* val4;
-
-	if (farm0 == open) {
-		val21 = "open";
-	}
-	if (farm0 == close) {
-		val21 = "close";
-	}
-	if (farm0 == still) {
-		val21 = "still";
-	}
-	if (farm0 == opened) {
-		val21 = "opened";
-	}
-	if (farm0 == closed) {
-		val21 = "closed";
-	}
-
-	if (farm1 == open) {
-		val22 = "open";
-	}
-	if (farm1 == close) {
-		val22 = "close";
-	}
-	if (farm1 == still) {
-		val22 = "still";
-	}
-	if (farm1 == opened) {
-		val22 = "opened";
-	}
-	if (farm1 == closed) {
-		val22 = "closed";
-	}
-
-
-	if (lift == open) {
-		val3 = "open";
-	}
-	if (lift == close) {
-		val3 = "close";
-	}
-	if (lift == still) {
-		val3 = "still";
-	}
-	if (lift == opened) {
-		val3 = "opened";
-	}
-	if (lift == closed) {
-		val3 = "closed";
-	}
-
-	if (relict == mech_wakeup) {
-		val4 = "mech_wakeup";
-	}
-	if (relict == mech_sleep) {
-		val4 = "mech_sleep";
-	}
-	if (relict == mech_wakeup_cmd) {
-		val4 = "mech_wakeup_cmd";
-	}
-	if (relict == mech_sleep_cmd) {
-		val4 = "mech_sleep_cmd";
-	}
-	if (relict == mech_suntrack) {
-		val4 = "mech_suntrack";
-	}
-	if (relict == mech_suntrack_cmd) {
-		val4 = " mech_suntrack_cmd";
-	}
-	if (relict == mech_still) {
-		val4 = "mech_still";
-	}
-
-	char* par4 = "| relict: ";
-	char* par21 = "| f0: ";
-	char* par22 = "| f1: ";
-	char* par3 = "|  l_s:  ";
-
-	strcpy(line1,par21);
-	strcat(line1,val21);
-	strcat(line1,space0);
-	strcat(line1,par22);
-	strcat(line1,val22);
-	strcat(line1,space0);
-	strcat(line1,par3);
-	strcat(line1,val3);
-	strcat(line1,space0);
-	strcat(line1,par4);
-	strcat(line1,val4);
-	strcat(line1,space0);
-
-    HAL_UART_Transmit(&huart2, (uint8_t*)line1, strlen(line1),HAL_MAX_DELAY);
-    HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
-}
-
 void buttonsHandler()
 {
 	if (HAL_GPIO_ReadPin (GPIOB, BUTTON_0_Pin) == GPIO_PIN_RESET) {
-		farm0 = open;
-		farm1 = open;
+		farms = open;
 	}
 	if (HAL_GPIO_ReadPin (GPIOB, BUTTON_1_Pin) == GPIO_PIN_RESET) {
-		farm0 = close;
-		farm1 = close;
+		farms = close;
 	}
 	if (HAL_GPIO_ReadPin (GPIOB, BUTTON_2_Pin) == GPIO_PIN_RESET) {
-		relict = mech_wakeup_cmd;
+		key3VBusState = 1;
+
 	}
 	if (HAL_GPIO_ReadPin (GPIOB, BUTTON_3_Pin) == GPIO_PIN_RESET) {
-		relict = mech_sleep_cmd;
+		key3VBusState = 0;
 	}
 
 	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_4_Pin) == GPIO_PIN_RESET) {
@@ -1162,29 +865,22 @@ void buttonsHandler()
 //		batKey2State = 1;
 		motor2Cmd = ccw;
 	}
-//
+
 	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_7_Pin) == GPIO_PIN_RESET) {
 //		batKey1State = 1;
 //		batKey2State = 0;
 		motor2Cmd = cw;
 	}
-//
-//
+
 	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_6_Pin) == GPIO_PIN_SET && HAL_GPIO_ReadPin (GPIOC, BUTTON_7_Pin) == GPIO_PIN_SET) {
 	//		batKey1State = 1;
 	//		batKey2State = 0;
 			motor2Cmd = stp;
 	}
-//
-//	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_8_Pin) == GPIO_PIN_RESET) {
-//		//sunTrackState = 1;
-//		motor5Cmd = cw;
-//	}
-//
-//	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_9_Pin) == GPIO_PIN_RESET) {
-//
-//		motor5Cmd = ccw;
-//	}
+
+	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_8_Pin) == GPIO_PIN_RESET) {
+		sunTrackState = 1;
+	}
 
 }
 
@@ -1233,14 +929,17 @@ int main(void)
   batKey2State = 1;
   key3VBusState = 1;
 
+  chrKey1State = 0;
+  chrKey2State = 0;
 
-
+  sunTrackState = 0;
 
   batKey1Handler();
   batKey2Handler();
   key3VBusHandler();
 
-  HAL_Delay(2000);
+  chrKey1Handler();
+  chrKey2Handler();
 
   RTC_Set(19, 6, 26, 18, 7, 0, 3);
 
@@ -1250,35 +949,27 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  I2C_Scan();
 
+  I2C_Scan();
 
   troykaI2CHub_init(&hi2c1);
   troykaI2CHub_setBusChannel(0);
 
   BH1750_Init(&hi2c1);
-  BH1750_PowerState(1);
   BH1750_SetMode(CONTINUOUS_HIGH_RES_MODE_2);
-
   troykaI2CHub_setBusChannel(1);
-  BH1750_PowerState(1);
   BH1750_SetMode(CONTINUOUS_HIGH_RES_MODE_2);
-
   troykaI2CHub_setBusChannel(3);
-  BH1750_PowerState(1);
   BH1750_SetMode(CONTINUOUS_HIGH_RES_MODE_2);
-
   troykaI2CHub_setBusChannel(4);
-  BH1750_PowerState(1);
   BH1750_SetMode(CONTINUOUS_HIGH_RES_MODE_2);
 
-  HAL_Delay(2000);
   HAL_ADC_Start_DMA(&hadc, (uint32_t*)&ADC_value, 2);
 
 
- // sim7020Init(&huart3, &huart2);
- // sim7020Dtr();
- // sim7020PowerCycle();
+  sim7020Init(&huart3, &huart2);
+  sim7020Dtr();
+  sim7020PowerCycle();
   //sim7020HardwareInfo();
 
 
@@ -1295,6 +986,9 @@ int main(void)
 
 	  batKey1Handler();
 	  batKey2Handler();
+	  chrKey1Handler();
+	  chrKey2Handler();
+
 	  key3VBusHandler();
 
 	  adcRead();
@@ -1310,34 +1004,26 @@ int main(void)
 	  endstop11Handler();
 	  endstop20Handler();
 	  endstop21Handler();
-	  endstop30Handler();
-	  endstop31Handler();
 
 	  endstop0Control();
 	  endstop1Control();
 	  endstop2Control();
 
-
-
-	  leftFarmPositionControl();
-	  rightFarmPositionControl();
-	  liftPositionControl();
-
-	  mechWakeUpControl();
-	  mechSleepControl();
-
-	  refreshStateControl();
-	  sunTrackControl();
+	  motor0PositionControl();
+	  motor1PositionControl();
+	  motor5PositionControl();
 
 	  motor0Handler();
 	  motor1Handler();
+
+	  sunTrackControl();
+
 	  motor2Handler();
 	  motor3Handler();
 	  motor4Handler();
 	  motor5Handler();
 
-	  debugPrint0();
-	  //debugPrint1();
+	  statusPrint();
 
   }
 
@@ -1437,6 +1123,29 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	        HAL_UART_Receive_IT(&huart3, rx_data, 1);
 	    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ////  if (huart->Instance == USART3)
 ////  {

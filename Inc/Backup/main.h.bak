@@ -113,10 +113,10 @@ void Error_Handler(void);
 #define SIM_SLP_GPIO_Port GPIOC
 #define KEY_3V_BUS_Pin GPIO_PIN_8
 #define KEY_3V_BUS_GPIO_Port GPIOA
-#define ESTOP_3_0_Pin GPIO_PIN_9
-#define ESTOP_3_0_GPIO_Port GPIOA
-#define ESTOP_3_1_Pin GPIO_PIN_10
-#define ESTOP_3_1_GPIO_Port GPIOA
+#define CHR_KEY_1_Pin GPIO_PIN_9
+#define CHR_KEY_1_GPIO_Port GPIOA
+#define CHR_KEY_2_Pin GPIO_PIN_10
+#define CHR_KEY_2_GPIO_Port GPIOA
 #define BAT_KEY_2_Pin GPIO_PIN_11
 #define BAT_KEY_2_GPIO_Port GPIOA
 #define BAT_KEY_1_Pin GPIO_PIN_12
