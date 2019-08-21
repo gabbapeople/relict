@@ -1,6 +1,9 @@
 
 #define BAUDRATES 15
-const long int Baudrates[BAUDRATES] = {0,110,300,1200,2400,4800,9600,19200,38400,57600,115200,230400,460800,921600,3000000};
+ long int Baudrates[BAUDRATES] = {0,110,300,1200,2400,4800,9600,19200,38400,57600,115200,230400,460800,921600,3000000};
+
+ const char* NBcmqconLogin = "Gabbapeople";
+ const char* NBcmqconPass = "142bca1da7344c5cb1b189625b9d5bc9";
 
 //
 
@@ -9,15 +12,20 @@ const char* NBcmqnew[] = {
   "\0"
 };
 
-const char* NBcmqcon[] = {
-  "AT+CMQCON=0,3,\"abdsjjdfdsfkslfkdsfkdsfsdfsdfa\",600,0,0,\"Gabbapeople\",\"142bca1da7344c5cb1b189625b9d5bc9\"",
-  "\0"
+const char* NBcmqdiscon[] = {
+	"AT+CMQDISCON=0",
+	"\0"
 };
 
-const char* NBcmqpub[] = {
-   "AT+CMQPUB=0,\"Gabbapeople/feeds/relict.data/\",1,0,0,8,\"31323334\""
-  "\0"
-};
+// char* NBcmqcon = {
+//  "AT+CMQCON=0,3,\"dasdsadsfsdfsdfa\",600,0,0,\"Gabbapeople\",\"142bca1da7344c5cb1b189625b9d5bc9\"",
+//  "\0"
+//};
+
+//const char* NBcmqpub_0[] = {
+//  "AT+CMQPUB=0,\"Gabbapeople/feeds/relict-estop-state.left-farm-0\",1,0,0,2,\"31\""
+//  "\0"
+//};
 
 //
 
@@ -45,6 +53,17 @@ const char* NBcops[] = {
    "AT+COPS?",
   "\0"
 };
+
+const char* NBcfun0[] = {
+   "AT+CFUN=0",
+  "\0"
+};
+
+const char* NBcfun1[] = {
+   "AT+CFUN=1",
+  "\0"
+};
+
 
 //
 

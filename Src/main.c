@@ -81,7 +81,7 @@ typedef enum {
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define VREF 3.29f
+#define VREF 3.20f
 
 #define SUN_ERROR_VERT 10
 #define SUN_ERROR_HORZ 10
@@ -127,6 +127,13 @@ _Bool dvertCorrect;
 _Bool dhorzCorrect;
 _Bool refreshState;
 
+_Bool mqttReportState;
+
+_Bool rainSensor0Dv;
+_Bool rainSensor1Dv;
+double rainSensor0Av;
+double rainSensor1Av;
+
 operateCmd farm0 = still;
 operateCmd farm1 = still;
 operateCmd lift = still;
@@ -156,12 +163,19 @@ float ls_tl, ls_tr, ls_bl, ls_br;
 int16_t dvert, dhorz;
 int16_t avt, avb, avl, avr;
 
-uint16_t ADC_value[2];
+uint16_t ADC_value[4];
+
 uint16_t ADC11, ADC12;
+uint16_t ADC13, ADC14;
+
 uint16_t buf_11[COUNT_FILTER], buf_12[COUNT_FILTER];
+uint16_t buf_13[COUNT_FILTER], buf_14[COUNT_FILTER];
+
 uint16_t filter_11, filter_12;
+uint16_t filter_13, filter_14;
 
 FILTER_REG F11, F12;
+FILTER_REG F13, F14;
 
 uint8_t c_hour;
 uint8_t c_min;
@@ -216,9 +230,14 @@ void rightFarmPositionControl();
 void liftPositionControl();
 
 void calculateVBat0();
+void calculateVBat1();
+
 void adcRead();
+
 void readLs();
 void resetLs();
+
+void readRain();
 
 void debugPrint0();
 void debugPrint1();
@@ -231,6 +250,10 @@ void lcdPrintLine0();
 void lcdPrintLine1();
 void lcdPrintLine2();
 void lcdPrintLine3();
+
+void relictMqttReportEstop();
+void relictMqttReportMechState();
+void relictMqttReportHandler();
 
 uint8_t* createBuffer(size_t size);
 
@@ -329,11 +352,16 @@ void adcRead()
 
 	ADC11 = ADC_value[0];
 	ADC12 = ADC_value[1];
+	ADC13 = ADC_value[2];
+	ADC14 = ADC_value[3];
+
 
 	filter_11 = filter_sred(ADC11, buf_11, &F11);
 	filter_12 = filter_sred(ADC12, buf_12, &F12);
+	filter_13 = filter_sred(ADC13, buf_13, &F13);
+	filter_14 = filter_sred(ADC14, buf_14, &F14);
 
-	HAL_ADC_Start_DMA(&hadc, (uint32_t *)&ADC_value, 2);
+	HAL_ADC_Start_DMA(&hadc, (uint32_t *)&ADC_value, 4);
 }
 
 void readLs()
@@ -357,6 +385,26 @@ void readLs()
 
 	dvert = avt - avb;
 	dhorz = avl - avr;
+}
+
+void readRain()
+{
+	if (HAL_GPIO_ReadPin (GPIOC, RAIN_0_D_Pin) == GPIO_PIN_RESET) {
+		rainSensor0Dv = 1;
+	} else if (HAL_GPIO_ReadPin (GPIOC, RAIN_0_D_Pin) == GPIO_PIN_SET) {
+		rainSensor0Dv = 0;
+	}
+
+	if (HAL_GPIO_ReadPin (GPIOC, RAIN_1_D_Pin) == GPIO_PIN_RESET) {
+		rainSensor1Dv = 1;
+	} else if (HAL_GPIO_ReadPin (GPIOC, RAIN_1_D_Pin) == GPIO_PIN_SET) {
+		rainSensor1Dv = 0;
+	}
+
+
+	rainSensor0Av = VREF / 4095.0 * filter_13;
+	rainSensor1Av = VREF / 4095.0 * filter_14;
+
 }
 
 void resetLs()
@@ -947,6 +995,36 @@ void debugPrint0()
 	HAL_UART_Transmit(&huart2, (uint8_t*)val9, strlen(val9), HAL_MAX_DELAY);
 	HAL_UART_Transmit(&huart2, (uint8_t*)"	", 1, HAL_MAX_DELAY);
 
+	char val10[7];
+	sprintf (val10, "%d", rainSensor0Dv);
+	char val11[7];
+	int tmpInt111 = rainSensor0Av;
+	float tmpFrac11 = rainSensor0Av - tmpInt111;
+	int tmpInt112 = trunc(tmpFrac11 * 100);
+	sprintf (val11,"%01d.%02d", tmpInt111, tmpInt112);
+
+	char val12[7];
+	sprintf (val12, "%d", rainSensor1Dv);
+
+
+	char val13[7];
+	int tmpInt131 = rainSensor1Av;
+	float tmpFrac13 = rainSensor1Av - tmpInt131;
+	int tmpInt132 = trunc(tmpFrac13 * 100);
+	sprintf (val13,"%01d.%02d", tmpInt131, tmpInt132);
+
+	HAL_UART_Transmit(&huart2, (uint8_t*)val10, strlen(val10), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)"	", 1, HAL_MAX_DELAY);
+
+	HAL_UART_Transmit(&huart2, (uint8_t*)val11, strlen(val11), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)"	", 1, HAL_MAX_DELAY);
+
+	HAL_UART_Transmit(&huart2, (uint8_t*)val12, strlen(val12), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)"	", 1, HAL_MAX_DELAY);
+
+	HAL_UART_Transmit(&huart2, (uint8_t*)val13, strlen(val13), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)"	", 1, HAL_MAX_DELAY);
+
     HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
 }
 
@@ -1120,11 +1198,12 @@ void debugPrint1()
     HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
 }
 
+
+
 void buttonsHandler()
 {
 	if (HAL_GPIO_ReadPin (GPIOB, BUTTON_0_Pin) == GPIO_PIN_RESET) {
-		farm0 = open;
-		farm1 = open;
+		mqttReportState = 1;
 	}
 	if (HAL_GPIO_ReadPin (GPIOB, BUTTON_1_Pin) == GPIO_PIN_RESET) {
 		farm0 = close;
@@ -1136,55 +1215,172 @@ void buttonsHandler()
 	if (HAL_GPIO_ReadPin (GPIOB, BUTTON_3_Pin) == GPIO_PIN_RESET) {
 		relict = mech_sleep_cmd;
 	}
+}
 
-	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_4_Pin) == GPIO_PIN_RESET) {
-//		chrKey1State = 1;
-//		chrKey2State = 0;
-		motor3Cmd = cw;
-		motor4Cmd = cw;
+void relictMqttReportEstop()
+{
+
+	char NBcmqpub_at_msg[8][100];
+	char NBcmqpub_val[8][3];
+
+	snprintf(NBcmqpub_val[0], 3, "%d",(uint8_t)endstop10State + 30);
+	snprintf(NBcmqpub_val[1], 3, "%d",(uint8_t)endstop11State + 30);
+	snprintf(NBcmqpub_val[2], 3, "%d",(uint8_t)endstop00State + 30);
+	snprintf(NBcmqpub_val[3], 3, "%d",(uint8_t)endstop01State + 30);
+	snprintf(NBcmqpub_val[4], 3, "%d",(uint8_t)endstop20State + 30);
+	snprintf(NBcmqpub_val[5], 3, "%d",(uint8_t)endstop21State + 30);
+	snprintf(NBcmqpub_val[6], 3, "%d",(uint8_t)endstop30State + 30);
+	snprintf(NBcmqpub_val[7], 3, "%d",(uint8_t)endstop31State + 30);
+
+	char* atStringWrapper = "\"";
+	char* NBcmqpub_cmd = "AT+CMQPUB=0,";
+	char* NBcmqpub_par_0 = ",1,0,0,2,";
+
+	const char* NBcmqpub_feed[8] = {"Gabbapeople/feeds/relict-estop-state.right-farm-0",
+	   					  	  	  	"Gabbapeople/feeds/relict-estop-state.right-farm-1",
+									"Gabbapeople/feeds/relict-estop-state.left-farm-0",
+									"Gabbapeople/feeds/relict-estop-state.left-farm-1",
+									"Gabbapeople/feeds/relict-estop-state.lift-0",
+									"Gabbapeople/feeds/relict-estop-state.lift-1",
+									"Gabbapeople/feeds/relict-estop-state.rotate-0",
+									"Gabbapeople/feeds/relict-estop-state.rotate-1"
+	    							};
+
+	for(uint8_t i = 0; i < 8; i++){
+	    strcpy(NBcmqpub_at_msg[i], NBcmqpub_cmd);
+		strcat(NBcmqpub_at_msg[i], atStringWrapper);
+		strcat(NBcmqpub_at_msg[i], NBcmqpub_feed[i]);
+		strcat(NBcmqpub_at_msg[i], atStringWrapper);
+		strcat(NBcmqpub_at_msg[i], NBcmqpub_par_0);
+		strcat(NBcmqpub_at_msg[i], atStringWrapper);
+		strcat(NBcmqpub_at_msg[i], NBcmqpub_val[i]);
+		strcat(NBcmqpub_at_msg[i], atStringWrapper);
+
+	    HAL_UART_Transmit(&huart2, (uint8_t*)NBcmqpub_at_msg[i], strlen(NBcmqpub_at_msg[i]),HAL_MAX_DELAY);
+	    HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+
+		const char* NBcmqpub[] = {
+				NBcmqpub_at_msg[i],
+				"\0"
+		};
+
+		sim7020_NBcmqpub(NBcmqpub);
+
+	}
+
+}
+
+void relictMqttReportMechState()
+{
+
+	char NBcmqpub_at_msg[3][100];
+	char NBcmqpub_val[3][6];
+
+	char* atStringWrapper = "\"";
+	char* NBcmqpub_cmd = "AT+CMQPUB=0,";
+	char* NBcmqpub_par_0 = ",1,0,0,12,";
+
+	char* str_open = "6f70656e2020";
+	char* str_close = "636c6f736520";
+	char* str_still = "7374696c6c20";
+	char* str_opened = "6f70656e6564";
+	char* str_closed = "636c6f736564";
+
+
+	const char* NBcmqpub_feed[3] = {"Gabbapeople/feeds/relict-mech-state.right-farm-state",
+	   					  	  	  	"Gabbapeople/feeds/relict-mech-state.left-farm-state",
+									"Gabbapeople/feeds/relict-mech-state.lift-state"
+	    							};
+
+	if (farm0 == open) {
+		strcpy(NBcmqpub_val[0],str_open);
+	}
+	if (farm0 == close) {
+		strcpy(NBcmqpub_val[0],str_close);
+	}
+	if (farm0 == still) {
+		strcpy(NBcmqpub_val[0],str_still);
+	}
+	if (farm0 == opened) {
+		strcpy(NBcmqpub_val[0],str_opened);
+	}
+	if (farm0 == closed) {
+		strcpy(NBcmqpub_val[0],str_closed);
+	}
+
+	if (farm1 == open) {
+		strcpy(NBcmqpub_val[1],str_open);
+	}
+	if (farm1 == close) {
+		strcpy(NBcmqpub_val[1],str_close);
+	}
+	if (farm1 == still) {
+		strcpy(NBcmqpub_val[1],str_still);
+	}
+	if (farm1 == opened) {
+		strcpy(NBcmqpub_val[1],str_opened);
+	}
+	if (farm1 == closed) {
+		strcpy(NBcmqpub_val[1],str_closed);
 	}
 
 
-	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_5_Pin) == GPIO_PIN_RESET) {
-//		chrKey1State = 0;
-//		chrKey2State = 1;
-		motor3Cmd = ccw;
-		motor4Cmd = ccw;
+	if (lift == open) {
+		strcpy(NBcmqpub_val[2],str_open);
+	}
+	if (lift == close) {
+		strcpy(NBcmqpub_val[2],str_close);
+	}
+	if (lift == still) {
+		strcpy(NBcmqpub_val[2],str_still);
+	}
+	if (lift == opened) {
+		strcpy(NBcmqpub_val[2],str_opened);
+	}
+	if (lift == closed) {
+		strcpy(NBcmqpub_val[2],str_closed);
 	}
 
-	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_5_Pin) == GPIO_PIN_SET && HAL_GPIO_ReadPin (GPIOC, BUTTON_4_Pin) == GPIO_PIN_SET) {
-		motor4Cmd = stp;
-		motor3Cmd = stp;
+
+	for(uint8_t i = 0; i < 3; i++){
+	    strcpy(NBcmqpub_at_msg[i], NBcmqpub_cmd);
+		strcat(NBcmqpub_at_msg[i], atStringWrapper);
+		strcat(NBcmqpub_at_msg[i], NBcmqpub_feed[i]);
+		strcat(NBcmqpub_at_msg[i], atStringWrapper);
+		strcat(NBcmqpub_at_msg[i], NBcmqpub_par_0);
+		strcat(NBcmqpub_at_msg[i], atStringWrapper);
+		strcat(NBcmqpub_at_msg[i], NBcmqpub_val[i]);
+		strcat(NBcmqpub_at_msg[i], atStringWrapper);
+
+	    HAL_UART_Transmit(&huart2, (uint8_t*)NBcmqpub_at_msg[i], strlen(NBcmqpub_at_msg[i]),HAL_MAX_DELAY);
+	    HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+
+		const char* NBcmqpub[] = {
+				NBcmqpub_at_msg[i],
+				"\0"
+		};
+
+		sim7020_NBcmqpub(NBcmqpub);
+
 	}
 
-	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_6_Pin) == GPIO_PIN_RESET) {
-//		batKey1State = 0;
-//		batKey2State = 1;
-		motor2Cmd = ccw;
+}
+
+
+void relictMqttReportHandler()
+{
+	if (mqttReportState == 1){
+
+		//sim7020_NBmaxfun();
+		generateRandomClientID();
+		sim7020_NBcmqcon();
+		relictMqttReportEstop();
+		relictMqttReportMechState();
+		sim7020_NBcmqdiscon();
+		mqttReportState = 0;
+		//sim7020_NBminfun();
+
 	}
-//
-	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_7_Pin) == GPIO_PIN_RESET) {
-//		batKey1State = 1;
-//		batKey2State = 0;
-		motor2Cmd = cw;
-	}
-//
-//
-	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_6_Pin) == GPIO_PIN_SET && HAL_GPIO_ReadPin (GPIOC, BUTTON_7_Pin) == GPIO_PIN_SET) {
-	//		batKey1State = 1;
-	//		batKey2State = 0;
-			motor2Cmd = stp;
-	}
-//
-//	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_8_Pin) == GPIO_PIN_RESET) {
-//		//sunTrackState = 1;
-//		motor5Cmd = cw;
-//	}
-//
-//	if (HAL_GPIO_ReadPin (GPIOC, BUTTON_9_Pin) == GPIO_PIN_RESET) {
-//
-//		motor5Cmd = ccw;
-//	}
 
 }
 
@@ -1200,6 +1396,8 @@ int main(void)
 
   F11.Val = 0;
   F12.Val = 0;
+  F13.Val = 0;
+  F14.Val = 0;
 
   /* USER CODE END 1 */
 
@@ -1233,7 +1431,7 @@ int main(void)
   batKey2State = 1;
   key3VBusState = 1;
 
-
+  mqttReportState = 0;
 
 
   batKey1Handler();
@@ -1276,10 +1474,22 @@ int main(void)
   HAL_ADC_Start_DMA(&hadc, (uint32_t*)&ADC_value, 2);
 
 
- // sim7020Init(&huart3, &huart2);
- // sim7020Dtr();
- // sim7020PowerCycle();
-  //sim7020HardwareInfo();
+  sim7020_init(&huart3, &huart2);
+  sim7020_dtr(0);
+  sim7020_powerCycle();
+
+
+  sim7020_hardwareInfo();
+  sim7020_NBcsq();
+  //sim7020_NBmaxfun();
+  sim7020_NBcpin();
+
+  HAL_Delay(5000);
+
+  sim7020_NBcopsUntillConnect(100);
+  sim7020_NBcmqnewUntillConnect(100);
+  //sim7020_NBminfun();
+
 
 
   while (1)
@@ -1289,7 +1499,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-
+	  relictMqttReportHandler();
 
 	  getDateTime();
 
@@ -1301,6 +1511,7 @@ int main(void)
 	  calculateVBat0();
 	  calculateVBat1();
 	  readLs();
+	  readRain();
 
 	  buttonsHandler();
 
@@ -1336,7 +1547,7 @@ int main(void)
 	  motor4Handler();
 	  motor5Handler();
 
-	  debugPrint0();
+	  //debugPrint0();
 	  //debugPrint1();
 
   }
