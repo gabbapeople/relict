@@ -1220,6 +1220,9 @@ void buttonsHandler()
 void relictMqttReportEstop()
 {
 
+	HAL_UART_Transmit(&huart2, (uint8_t*)"REPORT ESTP STATE", 17, HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+
 	char NBcmqpub_at_msg[8][100];
 	char NBcmqpub_val[8][3];
 
@@ -1273,18 +1276,21 @@ void relictMqttReportEstop()
 void relictMqttReportMechState()
 {
 
+	HAL_UART_Transmit(&huart2, (uint8_t*)"REPORT MECH STATE", 17, HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+
 	char NBcmqpub_at_msg[3][100];
-	char NBcmqpub_val[3][6];
+	char NBcmqpub_val[3][13];
 
 	char* atStringWrapper = "\"";
 	char* NBcmqpub_cmd = "AT+CMQPUB=0,";
 	char* NBcmqpub_par_0 = ",1,0,0,12,";
 
-	char* str_open = "6f70656e2020";
-	char* str_close = "636c6f736520";
-	char* str_still = "7374696c6c20";
-	char* str_opened = "6f70656e6564";
-	char* str_closed = "636c6f736564";
+//	char* str_open = "6f70656e2020";
+//	char* str_close = "636c6f736520";
+//	char* str_still = "7374696c6c20";
+//	char* str_opened = "6f70656e6564";
+//	char* str_closed = "636c6f736564";
 
 
 	const char* NBcmqpub_feed[3] = {"Gabbapeople/feeds/relict-mech-state.right-farm-state",
@@ -1292,58 +1298,66 @@ void relictMqttReportMechState()
 									"Gabbapeople/feeds/relict-mech-state.lift-state"
 	    							};
 
+	HAL_UART_Transmit(&huart2, (uint8_t*)"!!!!!!!!!!!1", 12, HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+
 	if (farm0 == open) {
-		strcpy(NBcmqpub_val[0],str_open);
+		strcpy(NBcmqpub_val[0],"6f70656e2020");
 	}
 	if (farm0 == close) {
-		strcpy(NBcmqpub_val[0],str_close);
+		strcpy(NBcmqpub_val[0], "636c6f736520");
 	}
 	if (farm0 == still) {
-		strcpy(NBcmqpub_val[0],str_still);
+		strcpy(NBcmqpub_val[0],"7374696c6c20");
 	}
 	if (farm0 == opened) {
-		strcpy(NBcmqpub_val[0],str_opened);
+		strcpy(NBcmqpub_val[0],"6f70656e6564");
 	}
 	if (farm0 == closed) {
-		strcpy(NBcmqpub_val[0],str_closed);
+		strcpy(NBcmqpub_val[0],"636c6f736564");
 	}
 
 	if (farm1 == open) {
-		strcpy(NBcmqpub_val[1],str_open);
+		strcpy(NBcmqpub_val[1],"6f70656e2020");
 	}
 	if (farm1 == close) {
-		strcpy(NBcmqpub_val[1],str_close);
+		strcpy(NBcmqpub_val[1],"636c6f736520");
 	}
 	if (farm1 == still) {
-		strcpy(NBcmqpub_val[1],str_still);
+		strcpy(NBcmqpub_val[1],"7374696c6c20");
 	}
 	if (farm1 == opened) {
-		strcpy(NBcmqpub_val[1],str_opened);
+		strcpy(NBcmqpub_val[1],"6f70656e6564");
 	}
 	if (farm1 == closed) {
-		strcpy(NBcmqpub_val[1],str_closed);
+		strcpy(NBcmqpub_val[1],"636c6f736564");
 	}
-
 
 	if (lift == open) {
-		strcpy(NBcmqpub_val[2],str_open);
+		strcpy(NBcmqpub_val[2],"6f70656e2020");
 	}
 	if (lift == close) {
-		strcpy(NBcmqpub_val[2],str_close);
+		strcpy(NBcmqpub_val[2],"636c6f736520");
 	}
 	if (lift == still) {
-		strcpy(NBcmqpub_val[2],str_still);
+		strcpy(NBcmqpub_val[2],"7374696c6c20");
 	}
 	if (lift == opened) {
-		strcpy(NBcmqpub_val[2],str_opened);
+		strcpy(NBcmqpub_val[2],"6f70656e6564");
 	}
 	if (lift == closed) {
-		strcpy(NBcmqpub_val[2],str_closed);
+		strcpy(NBcmqpub_val[2],"636c6f736564");
 	}
 
+	HAL_UART_Transmit(&huart2, (uint8_t*)"!!!!!!!!!!!2", 12, HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
 
 	for(uint8_t i = 0; i < 3; i++){
-	    strcpy(NBcmqpub_at_msg[i], NBcmqpub_cmd);
+
+		HAL_UART_Transmit(&huart2, (uint8_t*)"!!!!!!!!!!!3", 12, HAL_MAX_DELAY);
+		HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+
+		strcpy(NBcmqpub_at_msg[i], NBcmqpub_cmd);
 		strcat(NBcmqpub_at_msg[i], atStringWrapper);
 		strcat(NBcmqpub_at_msg[i], NBcmqpub_feed[i]);
 		strcat(NBcmqpub_at_msg[i], atStringWrapper);
@@ -1373,8 +1387,9 @@ void relictMqttReportHandler()
 
 		//sim7020_NBmaxfun();
 		generateRandomClientID();
+		sim7020_NBcmqnewUntillConnect(100);
 		sim7020_NBcmqcon();
-		relictMqttReportEstop();
+		//relictMqttReportEstop();
 		relictMqttReportMechState();
 		sim7020_NBcmqdiscon();
 		mqttReportState = 0;
@@ -1486,8 +1501,8 @@ int main(void)
 
   HAL_Delay(5000);
 
-  sim7020_NBcopsUntillConnect(100);
-  sim7020_NBcmqnewUntillConnect(100);
+  sim7020_NBcopsUntillConnect(255);
+
   //sim7020_NBminfun();
 
 

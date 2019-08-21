@@ -39,9 +39,9 @@ main.c:915:6:debugPrint0	288	static
 main.c:1031:6:debugPrint1	320	static
 main.c:1203:6:buttonsHandler	8	static
 main.c:1220:6:relictMqttReportEstop	896	static
-main.c:1273:6:relictMqttReportMechState	376	static
-main.c:1370:6:relictMqttReportHandler	8	static
-main.c:1562:6:SystemClock_Config	104	static
-main.c:1393:5:main	24	static
-main.c:1620:6:HAL_UART_RxCpltCallback	8	static
-main.c:1665:6:Error_Handler	0	static
+main.c:1276:6:relictMqttReportMechState	384	static
+main.c:1384:6:relictMqttReportHandler	8	static
+main.c:1577:6:SystemClock_Config	104	static
+main.c:1408:5:main	24	static
+main.c:1635:6:HAL_UART_RxCpltCallback	8	static
+main.c:1680:6:Error_Handler	0	static
