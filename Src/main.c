@@ -540,14 +540,14 @@ void liftPositionControl()
 	}
 }
 
-void refreshStateControl()
-{
-	if (endstop30State == 1 && endstop31State == 1){
-		refreshState = 1;
-	} else {
-		refreshState = 0;
-	}
-}
+//void refreshStateControl()
+//{
+//	if (endstop30State == 1 && endstop31State == 1){
+//		refreshState = 1;
+//	} else {
+//		refreshState = 0;
+//	}
+//}
 
 //void sunTrackControl()
 //{
@@ -596,53 +596,42 @@ void refreshStateControl()
 //
 //	}
 //}
+void sunTrackControl() {
+  if (relict == mech_suntrack_cmd) {
+      if (dhorz > -SUN_ERROR_HORZ && dhorz < SUN_ERROR_HORZ) {
+        motor2Cmd = stp;
+        dhorzCorrect = 1;
+      }
+      if (dhorz < -SUN_ERROR_HORZ || dhorz > SUN_ERROR_HORZ) {
+        dhorzCorrect = 0;
+        if (dhorz > 0) {
+          motor2Cmd = cw;
+        }
+        if (dhorz < 0) {
+          motor2Cmd = ccw;
+        }
+      }
 
-void sunTrackControl()
-{
-	if(relict == mech_suntrack_cmd){
-
-			if(dhorz > -SUN_ERROR_HORZ && dhorz < SUN_ERROR_HORZ) {
-				motor2Cmd = stp;
-				dhorzCorrect = 1;
-			}
-			if(dhorz < -SUN_ERROR_HORZ || dhorz > SUN_ERROR_HORZ){
-				dhorzCorrect = 0;
-				if (dhorz > 0) {
-				motor2Cmd = cw;
-				}
-				if (dhorz < 0) {
-				motor2Cmd = ccw;
-				}
-				if (endstop31State == 1){
-					motor2Cmd = stp;
-				}
-			}
-
-			if(dvert > -SUN_ERROR_VERT && dvert < SUN_ERROR_VERT) {
-					motor3Cmd = stp;
-					motor4Cmd = stp;
-					dvertCorrect = 1;
-			}
-			if(dvert < -SUN_ERROR_VERT || dvert > SUN_ERROR_VERT){
-					dvertCorrect = 0;
-					if(dvert > 0){
-						motor3Cmd = cw;
-						motor4Cmd = cw;
-					}
-					if(dvert < 0){
-						motor3Cmd = ccw;
-						motor4Cmd = ccw;
-					}
-					if(endstop30State == 1) {
-						motor3Cmd = stp;
-						motor4Cmd = stp;
-					}
-			}
-
-		if (dvertCorrect == 1 && dhorzCorrect == 1){
-			relict = mech_suntrack;
-		}
-	}
+      if (dvert > -SUN_ERROR_VERT && dvert < SUN_ERROR_VERT) {
+        motor3Cmd = stp;
+        motor4Cmd = stp;
+        dvertCorrect = 1;
+      }
+      if (dvert < -SUN_ERROR_VERT || dvert > SUN_ERROR_VERT) {
+        dvertCorrect = 0;
+        if (dvert > 0) {
+          motor3Cmd = cw;
+          motor4Cmd = cw;
+        }
+        if (dvert < 0) {
+          motor3Cmd = ccw;
+          motor4Cmd = ccw;
+        }
+      }
+    if (dhorzCorrect == 1 && dvertCorrect == 1){
+    	relict = mech_still;
+    }
+  }
 }
 
 void mechWakeUpControl()
@@ -659,7 +648,7 @@ void mechWakeUpControl()
 				farm1 = open;
 			}
 			if(farm0 == opened && farm1 == opened){
-				relict = mech_suntrack_cmd;
+				relict = mech_wakeup;
 			}
 		}
 	}
@@ -752,17 +741,17 @@ void motor2Handler()
 void motor3Handler()
 {
 	if (motor3Cmd == stp) {
-		HAL_GPIO_WritePin(GPIOC, MOTOR_3_EN_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB, MOTOR_3_EN_Pin, GPIO_PIN_RESET);
 	}
 
 	if (motor3Cmd == cw) {
-		HAL_GPIO_WritePin(GPIOC, MOTOR_3_EN_Pin,GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOB, MOTOR_3_D_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB, MOTOR_3_EN_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, MOTOR_3_D_Pin, GPIO_PIN_RESET);
 	}
 
 	if (motor3Cmd == ccw) {
-		HAL_GPIO_WritePin(GPIOC, MOTOR_3_EN_Pin,GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOB, MOTOR_3_D_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOB, MOTOR_3_EN_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, MOTOR_3_D_Pin, GPIO_PIN_SET);
 	}
 }
 
@@ -786,17 +775,17 @@ void motor4Handler()
 void motor5Handler()
 {
 	if (motor5Cmd == stp) {
-		HAL_GPIO_WritePin(GPIOD, MOTOR_5_EN_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOA, MOTOR_5_EN_Pin, GPIO_PIN_RESET);
 	}
 
 	if (motor5Cmd == cw) {
-		HAL_GPIO_WritePin(GPIOD, MOTOR_5_EN_Pin,GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, MOTOR_5_D_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOA, MOTOR_5_EN_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOD, MOTOR_5_D_Pin, GPIO_PIN_RESET);
 	}
 
 	if (motor5Cmd == ccw) {
-		HAL_GPIO_WritePin(GPIOD, MOTOR_5_EN_Pin,GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOA, MOTOR_5_D_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOA, MOTOR_5_EN_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOD, MOTOR_5_D_Pin, GPIO_PIN_SET);
 	}
 }
 
@@ -1203,11 +1192,12 @@ void debugPrint1()
 void buttonsHandler()
 {
 	if (HAL_GPIO_ReadPin (GPIOB, BUTTON_0_Pin) == GPIO_PIN_RESET) {
-		mqttReportState = 1;
+		relict = mech_suntrack_cmd;
+		//motor2Cmd = ccw;
 	}
 	if (HAL_GPIO_ReadPin (GPIOB, BUTTON_1_Pin) == GPIO_PIN_RESET) {
-		farm0 = close;
-		farm1 = close;
+		motor2Cmd = cw;
+		//motor4Cmd = cw;
 	}
 	if (HAL_GPIO_ReadPin (GPIOB, BUTTON_2_Pin) == GPIO_PIN_RESET) {
 		relict = mech_wakeup_cmd;
@@ -1286,11 +1276,11 @@ void relictMqttReportMechState()
 	char* NBcmqpub_cmd = "AT+CMQPUB=0,";
 	char* NBcmqpub_par_0 = ",1,0,0,12,";
 
-//	char* str_open = "6f70656e2020";
-//	char* str_close = "636c6f736520";
-//	char* str_still = "7374696c6c20";
-//	char* str_opened = "6f70656e6564";
-//	char* str_closed = "636c6f736564";
+	char* str_open = "6f70656e2020";
+	char* str_close = "636c6f736520";
+	char* str_still = "7374696c6c20";
+	char* str_opened = "6f70656e6564";
+	char* str_closed = "636c6f736564";
 
 
 	const char* NBcmqpub_feed[3] = {"Gabbapeople/feeds/relict-mech-state.right-farm-state",
@@ -1302,51 +1292,51 @@ void relictMqttReportMechState()
 	HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
 
 	if (farm0 == open) {
-		strcpy(NBcmqpub_val[0],"6f70656e2020");
+		strcpy(NBcmqpub_val[0],str_open);
 	}
 	if (farm0 == close) {
-		strcpy(NBcmqpub_val[0], "636c6f736520");
+		strcpy(NBcmqpub_val[0],str_close);
 	}
 	if (farm0 == still) {
-		strcpy(NBcmqpub_val[0],"7374696c6c20");
+		strcpy(NBcmqpub_val[0],str_still);
 	}
 	if (farm0 == opened) {
-		strcpy(NBcmqpub_val[0],"6f70656e6564");
+		strcpy(NBcmqpub_val[0],str_opened);
 	}
 	if (farm0 == closed) {
-		strcpy(NBcmqpub_val[0],"636c6f736564");
+		strcpy(NBcmqpub_val[0],str_closed);
 	}
 
 	if (farm1 == open) {
-		strcpy(NBcmqpub_val[1],"6f70656e2020");
+		strcpy(NBcmqpub_val[1],str_open);
 	}
 	if (farm1 == close) {
-		strcpy(NBcmqpub_val[1],"636c6f736520");
+		strcpy(NBcmqpub_val[1],str_close);
 	}
 	if (farm1 == still) {
-		strcpy(NBcmqpub_val[1],"7374696c6c20");
+		strcpy(NBcmqpub_val[1],str_still);
 	}
 	if (farm1 == opened) {
-		strcpy(NBcmqpub_val[1],"6f70656e6564");
+		strcpy(NBcmqpub_val[1],str_opened);
 	}
 	if (farm1 == closed) {
-		strcpy(NBcmqpub_val[1],"636c6f736564");
+		strcpy(NBcmqpub_val[1],str_closed);
 	}
 
 	if (lift == open) {
-		strcpy(NBcmqpub_val[2],"6f70656e2020");
+		strcpy(NBcmqpub_val[2],str_open);
 	}
 	if (lift == close) {
-		strcpy(NBcmqpub_val[2],"636c6f736520");
+		strcpy(NBcmqpub_val[2],str_close);
 	}
 	if (lift == still) {
-		strcpy(NBcmqpub_val[2],"7374696c6c20");
+		strcpy(NBcmqpub_val[2],str_still);
 	}
 	if (lift == opened) {
-		strcpy(NBcmqpub_val[2],"6f70656e6564");
+		strcpy(NBcmqpub_val[2],str_opened);
 	}
 	if (lift == closed) {
-		strcpy(NBcmqpub_val[2],"636c6f736564");
+		strcpy(NBcmqpub_val[2],str_closed);
 	}
 
 	HAL_UART_Transmit(&huart2, (uint8_t*)"!!!!!!!!!!!2", 12, HAL_MAX_DELAY);
@@ -1489,19 +1479,19 @@ int main(void)
   HAL_ADC_Start_DMA(&hadc, (uint32_t*)&ADC_value, 2);
 
 
-  sim7020_init(&huart3, &huart2);
-  sim7020_dtr(0);
-  sim7020_powerCycle();
+//  sim7020_init(&huart3, &huart2);
+//  sim7020_dtr(0);
+//  sim7020_powerCycle();
+//
+//
+//  sim7020_hardwareInfo();
+//  sim7020_NBcsq();
+//  //sim7020_NBmaxfun();
+//  sim7020_NBcpin();
 
-
-  sim7020_hardwareInfo();
-  sim7020_NBcsq();
-  //sim7020_NBmaxfun();
-  sim7020_NBcpin();
-
-  HAL_Delay(5000);
-
-  sim7020_NBcopsUntillConnect(255);
+//  HAL_Delay(5000);
+//
+//  sim7020_NBcopsUntillConnect(255);
 
   //sim7020_NBminfun();
 
@@ -1552,7 +1542,7 @@ int main(void)
 	  mechWakeUpControl();
 	  mechSleepControl();
 
-	  refreshStateControl();
+	  //refreshStateControl();
 	  sunTrackControl();
 
 	  motor0Handler();
@@ -1562,8 +1552,8 @@ int main(void)
 	  motor4Handler();
 	  motor5Handler();
 
-	  //debugPrint0();
-	  //debugPrint1();
+	 //debugPrint0();
+	 debugPrint1();
 
   }
 

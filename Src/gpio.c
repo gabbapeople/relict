@@ -36,8 +36,6 @@
         * Output
         * EVENT_OUT
         * EXTI
-        * Free pins are configured automatically as Analog (this feature is enabled through 
-        * the Code Generation settings)
 */
 void MX_GPIO_Init(void)
 {
@@ -52,23 +50,17 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, MOTOR_1_EN_Pin|MOTOR_1_D_Pin|MOTOR_0_EN_Pin|MOTOR_0_D_Pin 
-                          |MOTOR_3_D_Pin|MOTOR_4_D_Pin|MOTOR_4_EN_Pin|SIM_PWR_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, MOTOR_1_D_Pin|MOTOR_1_EN_Pin|MOTOR_0_D_Pin|MOTOR_0_EN_Pin 
+                          |MOTOR_3_EN_Pin|MOTOR_4_EN_Pin|MOTOR_4_D_Pin|SIM_PWR_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, MOTOR_3_EN_Pin|MOTOR_2_D_Pin|MOTOR_2_EN_Pin|SIM_SLP_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, MOTOR_3_D_Pin|MOTOR_2_EN_Pin|MOTOR_2_D_Pin|SIM_SLP_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, KEY_3V_BUS_Pin|BAT_KEY_2_Pin|BAT_KEY_1_Pin|MOTOR_5_D_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, KEY_3V_BUS_Pin|BAT_KEY_2_Pin|BAT_KEY_1_Pin|MOTOR_5_EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(MOTOR_5_EN_GPIO_Port, MOTOR_5_EN_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pins : PC13 PC2 PC3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_2|GPIO_PIN_3;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_WritePin(MOTOR_5_D_GPIO_Port, MOTOR_5_D_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PAPin PAPin PAPin PAPin 
                            PAPin PAPin */
@@ -86,40 +78,40 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pins : PBPin PBPin PBPin PBPin 
                            PBPin PBPin */
-  GPIO_InitStruct.Pin = MOTOR_1_EN_Pin|MOTOR_1_D_Pin|MOTOR_3_D_Pin|MOTOR_4_D_Pin 
-                          |MOTOR_4_EN_Pin|SIM_PWR_Pin;
+  GPIO_InitStruct.Pin = MOTOR_1_D_Pin|MOTOR_1_EN_Pin|MOTOR_3_EN_Pin|MOTOR_4_EN_Pin 
+                          |MOTOR_4_D_Pin|SIM_PWR_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PBPin PBPin */
-  GPIO_InitStruct.Pin = MOTOR_0_EN_Pin|MOTOR_0_D_Pin;
+  GPIO_InitStruct.Pin = MOTOR_0_D_Pin|MOTOR_0_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PCPin PCPin PCPin PCPin */
-  GPIO_InitStruct.Pin = MOTOR_3_EN_Pin|MOTOR_2_D_Pin|MOTOR_2_EN_Pin|SIM_SLP_Pin;
+  GPIO_InitStruct.Pin = MOTOR_3_D_Pin|MOTOR_2_EN_Pin|MOTOR_2_D_Pin|SIM_SLP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PAPin PAPin PAPin PAPin */
-  GPIO_InitStruct.Pin = KEY_3V_BUS_Pin|BAT_KEY_2_Pin|BAT_KEY_1_Pin|MOTOR_5_D_Pin;
+  GPIO_InitStruct.Pin = KEY_3V_BUS_Pin|BAT_KEY_2_Pin|BAT_KEY_1_Pin|MOTOR_5_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = MOTOR_5_EN_Pin;
+  GPIO_InitStruct.Pin = MOTOR_5_D_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(MOTOR_5_EN_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(MOTOR_5_D_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PBPin PBPin PBPin PBPin */
   GPIO_InitStruct.Pin = BUTTON_3_Pin|BUTTON_2_Pin|BUTTON_0_Pin|BUTTON_1_Pin;
